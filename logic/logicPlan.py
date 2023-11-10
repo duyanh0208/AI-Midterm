@@ -50,15 +50,15 @@ def sentence1() -> Expr:
     (not A) or (not B) or C
     """
     "*** BEGIN YOUR CODE HERE ***"
-    A = logic.Expr('A')
-    B = logic.Expr('B')
-    C = logic.Expr('C')
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
 
-    c1 = logic.disjoin(A, B)
+    c1 = disjoin(A, B)
     c2 = ~A % (~B | C)
-    c3 = logic.disjoin(~A, ~B, C)
+    c3 = disjoin(~A, ~B, C)
 
-    return logic.conjoin(c1, c2, c3)
+    return conjoin(c1, c2, c3)
     "*** END YOUR CODE HERE ***"
 
 
@@ -71,17 +71,17 @@ def sentence2() -> Expr:
     (not D) implies C
     """
     "*** BEGIN YOUR CODE HERE ***"
-    A = logic.Expr('A')
-    B = logic.Expr('B')
-    C = logic.Expr('C')
-    D = logic.Expr('D')
+    A = Expr('A')
+    B = Expr('B')
+    C = Expr('C')
+    D = Expr('D')
 
     c1 = C % (B | D)
     c2 = A >> (~B & ~D)
     c3 = ~(B & ~C) >> A
     c4 = ~D >> C
 
-    return logic.conjoin(c1, c2, c3, c4)
+    return conjoin(c1, c2, c3, c4)
     "*** END YOUR CODE HERE ***"
 
 
@@ -170,7 +170,7 @@ def atLeastOne(literals: List[Expr]) -> Expr:
     True
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return disjoin(literals)
     "*** END YOUR CODE HERE ***"
 
 
@@ -182,7 +182,13 @@ def atMostOne(literals: List[Expr]) -> Expr:
     itertools.combinations may be useful here.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    P = []
+    combinations = itertools.combinations(literals, 2)
+    for literal_1, literal_2 in combinations:
+        if literal_1 != literal_2:
+            P.append(disjoin(~literal_1, ~literal_2))
+
+    return conjoin(P)
     "*** END YOUR CODE HERE ***"
 
 
@@ -193,7 +199,7 @@ def exactlyOne(literals: List[Expr]) -> Expr:
     the expressions in the list is true.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return conjoin(atLeastOne(literals), atMostOne(literals))
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
