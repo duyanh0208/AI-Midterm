@@ -303,7 +303,38 @@ def pacphysicsAxioms(t: int, all_coords: List[Tuple], non_outer_wall_coords: Lis
     pacphysics_sentences = []
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    #  for all (x, y) in all_coords:
+    #      If a wall is at (x, y) --> Pacman is not at (x, y)
+    walls = []
+    for x, y in all_coords:
+        walls.append(PropSymbolExpr(wall_str, x, y) >> ~PropSymbolExpr(pacman_str, x, y, time=t))
+
+    pacphysics_sentences.append(conjoin(walls))
+
+
+    # Pacman is at exactly one of the squares at timestep t.
+    possible_pacman_coordinates = []
+    for x, y in non_outer_wall_coords:
+        possible_pacman_coordinates.append(PropSymbolExpr(pacman_str, x, y, time=t))
+
+    pacphysics_sentences.append(exactlyOne(possible_pacman_coordinates))
+
+    # Pacman takes exactly one action at timestep t.
+    pacman_do_action = []
+    for action in DIRECTIONS:
+        pacman_do_action.append(PropSymbolExpr(action, time=t))
+
+    pacphysics_sentences.append(exactlyOne(pacman_do_action))
+
+    # Results of calling sensorModel(...), unless None.
+    if sensorModel is not None:
+        pacphysics_sentences.append(sensorModel(t, non_outer_wall_coords))
+
+    # Results of calling successorAxioms(...), describing how Pacman can end in various
+    # locations on this time step. Consider edge cases. Don't call if None.
+    if successorAxioms is not None and t > 0:
+        pacphysics_sentences.append(successorAxioms(t, walls_grid, non_outer_wall_coords))
     "*** END YOUR CODE HERE ***"
 
     return conjoin(pacphysics_sentences)
@@ -337,7 +368,17 @@ def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], 
     KB.append(conjoin(map_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    KB.append(pacphysicsAxioms(0, all_coords, non_outer_wall_coords, walls_grid))
+    KB.append(pacphysicsAxioms(1, all_coords, non_outer_wall_coords, walls_grid, None, allLegalSuccessorAxioms))
+
+    KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0))
+    KB.append(PropSymbolExpr(action0, time=0))
+    KB.append(PropSymbolExpr(action1, time=1))
+
+    model_at_x1_y1 = findModel(conjoin(conjoin(KB), PropSymbolExpr(pacman_str, x1, y1, time=1)))
+    model_not_at_x1_y1 = findModel(conjoin(conjoin(KB), ~PropSymbolExpr(pacman_str, x1, y1, time=1)))
+
+    return(model_at_x1_y1, model_not_at_x1_y1)
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
