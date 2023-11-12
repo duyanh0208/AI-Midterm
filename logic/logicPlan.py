@@ -477,7 +477,53 @@ def foodLogicPlan(problem) -> List:
     KB = []
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0))
+
+    # Initialize Food[x,y]_t variables with the code
+    # PropSymbolExpr(food_str, x, y, time=t), where each variable is
+    # true if and only if there is a food at (x, y) at time t.
+    for x, y in food:
+        KB.append(PropSymbolExpr(food_str, x, y, time=0))
+
+    for t in range(0, 50):
+        print("t = ", t)
+
+        possibleCoords = []
+        for x, y in non_wall_coords:
+            possibleCoords.append(PropSymbolExpr(pacman_str, x, y, time=t))
+        KB.append(exactlyOne(possibleCoords))
+
+        allFood = []
+        for x, y in non_wall_coords:
+            allFood.append(PropSymbolExpr(food_str, x, y, time=t))
+
+        # goal assertion sentence must be true if and only if all of
+        # the food have been eaten. This happens when all Food[x,y]_t
+        # are false.
+        model = findModel(
+            conjoin(conjoin(KB), ~disjoin(allFood)),
+        )
+        if model:
+            return extractActionSequence(model, actions)
+
+        actionlist = []
+        for action in actions:
+            actionlist.append(PropSymbolExpr(action, time=t))
+        KB.append(exactlyOne(actionlist))
+
+        transitionModelSentences = []
+        for x, y in non_wall_coords:
+            transitionModelSentences.append(
+                pacmanSuccessorAxiomSingle(x, y, t + 1, walls)
+            )
+        KB += transitionModelSentences
+
+        # food successor axiom
+        for x, y in non_wall_coords:
+            P1 = PropSymbolExpr(food_str, x, y, time=t)
+            P2 = ~PropSymbolExpr(pacman_str, x, y, time=t)
+            C = PropSymbolExpr(food_str, x, y, time=t + 1)
+            KB.append(C % conjoin(P1, P2))
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
