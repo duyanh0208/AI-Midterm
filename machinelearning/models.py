@@ -123,6 +123,7 @@ class RegressionModel(object):
                 self.b2.update(gb2, -self.learnRate)
                 loss = nn.as_scalar(loss)
 
+
 class DigitClassificationModel(object):
     """
     A model for handwritten digit classification using the MNIST dataset.
@@ -200,3 +201,106 @@ class DigitClassificationModel(object):
                 self.b2.update(gb2, -self.learnRate)
             validation = dataset.get_validation_accuracy()
         "*** YOUR CODE HERE ***"
+
+
+class LanguageIDModel(object):
+    """
+    A model for language identification at a single-word granularity.
+
+    (See RegressionModel for more information about the APIs of different
+    methods here. We recommend that you implement the RegressionModel before
+    working on this part of the project.)
+    """
+
+    def __init__(self):
+        # Our dataset contains words from five different languages, and the
+        # combined alphabets of the five languages contain a total of 47 unique
+        # characters.
+        # You can refer to self.num_chars or len(self.languages) in your code
+        self.num_chars = 47
+        self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
+
+        # Initialize your model parameters here
+        "*** YOUR CODE HERE ***"
+        d = 250
+        self.wx = nn.Parameter(self.num_chars, d)  # first argument should be dim (x)
+        self.bi = nn.Parameter(1, d)
+        self.wh = nn.Parameter(d, d)
+        self.w_last = nn.Parameter(d, 5)
+        self.learnRate = 0.2
+
+    def run(self, xs):
+        """
+        Runs the model for a batch of examples.
+
+        Although words have different lengths, our data processing guarantees
+        that within a single batch, all words will be of the same length (L).
+
+        Here `xs` will be a list of length L. Each element of `xs` will be a
+        node with shape (batch_size x self.num_chars), where every row in the
+        array is a one-hot vector encoding of a character. For example, if we
+        have a batch of 8 three-letter words where the last word is "cat", then
+        xs[1] will be a node that contains a 1 at position (7, 0). Here the
+        index 7 reflects the fact that "cat" is the last word in the batch, and
+        the index 0 reflects the fact that the letter "a" is the inital (0th)
+        letter of our combined alphabet for this task.
+
+        Your model should use a Recurrent Neural Network to summarize the list
+        `xs` into a single node of shape (batch_size x hidden_size), for your
+        choice of hidden_size. It should then calculate a node of shape
+        (batch_size x 5) containing scores, where higher scores correspond to
+        greater probability of the word originating from a particular language.
+
+        Inputs:
+            xs: a list with L elements (one per character), where each element
+                is a node with shape (batch_size x self.num_chars)
+        Returns:
+            A node with shape (batch_size x 5) containing predicted scores
+                (also called logits)
+        """
+        "*** YOUR CODE HERE ***"
+        # initial h
+        hi = nn.ReLU(nn.AddBias(nn.Linear(xs[0], self.wx), self.bi))
+        for i in range(1, len(xs)):
+            xwhw = nn.Add(nn.Linear(xs[i], self.wx), nn.Linear(hi, self.wh))
+            # hidden h for each i
+            hi = nn.ReLU(xwhw)
+        predicted_y = nn.ReLU(nn.Linear(hi, self.w_last))
+        return predicted_y
+
+    def get_loss(self, xs, y):
+        """
+        Computes the loss for a batch of examples.
+
+        The correct labels `y` are represented as a node with shape
+        (batch_size x 5). Each row is a one-hot vector encoding the correct
+        language.
+
+        Inputs:
+            xs: a list with L elements (one per character), where each element
+                is a node with shape (batch_size x self.num_chars)
+            y: a node with shape (batch_size x 5)
+        Returns: a loss node
+        """
+
+        "*** YOUR CODE HERE ***"
+        predicted_y = self.run(xs)
+        loss = nn.SoftmaxLoss(predicted_y, y)
+        return loss
+
+    def train(self, dataset):
+        """
+        Trains the model.
+        """
+        "*** YOUR CODE HERE ***"
+        batch_size = 100
+        validation = 0
+        while validation < 0.85:
+            for x, y in dataset.iterate_once(batch_size):
+                loss = self.get_loss(x, y)
+                gwx, gwh, gwl, gwbi = nn.gradients(loss, [self.wx, self.wh, self.w_last, self.bi])
+                self.wx.update(gwx, -self.learnRate)
+                self.wh.update(gwh, -self.learnRate)
+                self.w_last.update(gwl, -self.learnRate)
+                self.bi.update(gwbi, -self.learnRate)
+            validation = dataset.get_validation_accuracy()

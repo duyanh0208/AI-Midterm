@@ -518,5 +518,63 @@ def my_check_digit_classification(tracker):
     else:
         print("Your final test set accuracy ({:%}) must be at least {:.0%} to receive full points for this question".format(test_accuracy, accuracy_threshold))
 
+@my_test('q4', points=7)
+def my_check_lang_id(tracker):
+    import models
+    model = models.LanguageIDModel()
+    dataset = backend.LanguageIDDataset(model)
+
+    detected_parameters = None
+    for batch_size, word_length in ((1, 1), (2, 1), (2, 6), (4, 8)):
+        start = dataset.dev_buckets[-1, 0]
+        end = start + batch_size
+        inp_xs, inp_y = dataset._encode(dataset.dev_x[start:end], dataset.dev_y[start:end])
+        inp_xs = inp_xs[:word_length]
+
+        output_node = model.run(inp_xs)
+        verify_node(output_node, 'node', (batch_size, len(dataset.language_names)), "LanguageIDModel.run()")
+        trace = trace_node(output_node)
+        for inp_x in inp_xs:
+            assert inp_x in trace, "Node returned from LanguageIDModel.run() does not depend on all of the provided inputs (xs)"
+
+        # Word length 1 does not use parameters related to transferring the
+        # hidden state across timesteps, so initial parameter detection is only
+        # run for longer words
+        if word_length > 1:
+            if detected_parameters is None:
+                detected_parameters = [node for node in trace if isinstance(node, nn.Parameter)]
+
+            for node in trace:
+                assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
+                    "Calling LanguageIDModel.run() multiple times should always re-use the same parameters, but a new nn.Parameter object was detected")
+
+    for batch_size, word_length in ((1, 1), (2, 1), (2, 6), (4, 8)):
+        start = dataset.dev_buckets[-1, 0]
+        end = start + batch_size
+        inp_xs, inp_y = dataset._encode(dataset.dev_x[start:end], dataset.dev_y[start:end])
+        inp_xs = inp_xs[:word_length]
+        loss_node = model.get_loss(inp_xs, inp_y)
+        trace = trace_node(loss_node)
+        for inp_x in inp_xs:
+            assert inp_x in trace, "Node returned from LanguageIDModel.run() does not depend on all of the provided inputs (xs)"
+        assert inp_y in trace, "Node returned from LanguageIDModel.get_loss() does not depend on the provided labels (y)"
+
+        for node in trace:
+            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
+                "LanguageIDModel.get_loss() should not use additional parameters not used by LanguageIDModel.run()")
+
+    tracker.add_points(2) # Partial credit for passing sanity checks
+
+    model.train(dataset)
+
+    test_predicted_probs, test_predicted, test_correct = dataset._predict('test')
+    test_accuracy = np.mean(test_predicted == test_correct)
+    accuracy_threshold = 0.81
+    if test_accuracy >= accuracy_threshold:
+        print("Your final test set accuracy is: {:%}".format(test_accuracy))
+        tracker.add_points(5)
+    else:
+        print("Your final test set accuracy ({:%}) must be at least {:.0%} to receive full points for this question".format(test_accuracy, accuracy_threshold))
+
 if __name__ == '__main__':
     my_main()
