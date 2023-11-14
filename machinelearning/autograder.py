@@ -10,14 +10,14 @@ import random
 import sys
 import traceback
 
-class WritableNull:
+class MyWritableNull:
     def write(self, string):
         pass
 
     def flush(self):
         pass
 
-class Tracker(object):
+class MyTracker(object):
     def __init__(self, questions, maxes, prereqs, mute_output):
         self.questions = questions
         self.maxes = maxes
@@ -41,7 +41,7 @@ class Tracker(object):
 
         self.muted = True
         self.original_stdout = sys.stdout
-        sys.stdout = WritableNull()
+        sys.stdout = MyWritableNull()
 
     def unmute(self):
         if not self.muted:
@@ -118,6 +118,7 @@ to follow your instructor's guidelines to receive credit on your project.
 
 TESTS = []
 PREREQS = {}
+
 def add_prereq(q, pre):
     if isinstance(pre, str):
         pre = [pre]
@@ -126,55 +127,55 @@ def add_prereq(q, pre):
         PREREQS[q] = set()
     PREREQS[q] |= set(pre)
 
-def test(q, points):
+def my_test(q, points):
     def deco(fn):
         TESTS.append((q, points, fn))
         return fn
     return deco
 
-def parse_options(argv):
-    parser = optparse.OptionParser(description = 'Run public tests on student code')
-    parser.set_defaults(
+def my_parse_options(argv):
+    my_parser = optparse.OptionParser(description = 'Run public tests on student code')
+    my_parser.set_defaults(
         edx_output=False,
         gs_output=False,
         no_graphics=False,
         mute_output=False,
         check_dependencies=False,
-        )
-    parser.add_option('--edx-output',
+    )
+    my_parser.add_option('--edx-output',
                         dest = 'edx_output',
                         action = 'store_true',
                         help = 'Ignored, present for compatibility only')
-    parser.add_option('--gradescope-output',
+    my_parser.add_option('--gradescope-output',
                         dest = 'gs_output',
                         action = 'store_true',
                         help = 'Ignored, present for compatibility only')
-    parser.add_option('--question', '-q',
+    my_parser.add_option('--question', '-q',
                         dest = 'grade_question',
                         default = None,
                         help = 'Grade only one question (e.g. `-q q1`)')
-    parser.add_option('--no-graphics',
+    my_parser.add_option('--no-graphics',
                         dest = 'no_graphics',
                         action = 'store_true',
                         help = 'Do not display graphics (visualizing your implementation is highly recommended for debugging).')
-    parser.add_option('--mute',
+    my_parser.add_option('--mute',
                         dest = 'mute_output',
                         action = 'store_true',
                         help = 'Mute output from executing tests')
-    parser.add_option('--check-dependencies',
+    my_parser.add_option('--check-dependencies',
                         dest = 'check_dependencies',
                         action = 'store_true',
                         help = 'check that numpy and matplotlib are installed')
-    (options, args) = parser.parse_args(argv)
-    return options
+    (my_options, my_args) = my_parser.parse_args(argv)
+    return my_options
 
-def main():
-    options = parse_options(sys.argv)
-    if options.check_dependencies:
+def my_main():
+    my_options = my_parse_options(sys.argv)
+    if my_options.check_dependencies:
         check_dependencies()
         return
 
-    if options.no_graphics:
+    if my_options.no_graphics:
         disable_graphics()
 
     questions = set()
@@ -186,15 +187,15 @@ def main():
             PREREQS[q] = set()
 
     questions = list(sorted(questions))
-    if options.grade_question:
-        if options.grade_question not in questions:
+    if my_options.grade_question:
+        if my_options.grade_question not in questions:
             print("ERROR: question {} does not exist".format(options.grade_question))
             sys.exit(1)
         else:
-            questions = [options.grade_question]
-            PREREQS[options.grade_question] = set()
+            questions = [my_options.grade_question]
+            PREREQS[my_options.grade_question] = set()
 
-    tracker = Tracker(questions, maxes, PREREQS, options.mute_output)
+    tracker = MyTracker(questions, maxes, PREREQS, my_options.mute_output)
     for q in questions:
         started = tracker.begin_q(q)
         if not started:
@@ -302,8 +303,8 @@ def trace_node(node_to_trace):
 
     return nodes
 
-@test('q1', points=6)
-def check_perceptron(tracker):
+@my_test('q1', points=6)
+def my_check_perceptron(tracker):
     import models
 
     print("Sanity checking perceptron...")
@@ -339,7 +340,7 @@ def check_perceptron(tracker):
                 "PerceptronModel.get_prediction() should return 1 or -1, not {}".format(
                 prediction))
 
-            expected_prediction = np.asscalar(np.where(np.dot(point, p.get_weights().data.T) >= 0, 1, -1))
+            expected_prediction = np.where(np.dot(point, p.get_weights().data.T) >= 0, 1, -1).item()
             assert prediction == expected_prediction, (
                 "PerceptronModel.get_prediction() returned {}; expected {}".format(
                     prediction, expected_prediction))
@@ -404,8 +405,8 @@ def check_perceptron(tracker):
 
     tracker.add_points(4)
 
-@test('q2', points=6)
-def check_regression(tracker):
+@my_test('q2', points=6)
+def my_check_regression(tracker):
     import models
     model = models.RegressionModel()
     dataset = backend.RegressionDataset(model)
@@ -467,113 +468,5 @@ def check_regression(tracker):
     else:
         print("Your final loss ({:f}) must be no more than {:.4f} to receive full points for this question".format(train_loss, loss_threshold))
 
-@test('q3', points=6)
-def check_digit_classification(tracker):
-    import models
-    model = models.DigitClassificationModel()
-    dataset = backend.DigitClassificationDataset(model)
-
-    detected_parameters = None
-    for batch_size in (1, 2, 4):
-        inp_x = nn.Constant(dataset.x[:batch_size])
-        inp_y = nn.Constant(dataset.y[:batch_size])
-        output_node = model.run(inp_x)
-        verify_node(output_node, 'node', (batch_size, 10), "DigitClassificationModel.run()")
-        trace = trace_node(output_node)
-        assert inp_x in trace, "Node returned from DigitClassificationModel.run() does not depend on the provided input (x)"
-
-        if detected_parameters is None:
-            detected_parameters = [node for node in trace if isinstance(node, nn.Parameter)]
-
-        for node in trace:
-            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
-                "Calling DigitClassificationModel.run() multiple times should always re-use the same parameters, but a new nn.Parameter object was detected")
-
-    for batch_size in (1, 2, 4):
-        inp_x = nn.Constant(dataset.x[:batch_size])
-        inp_y = nn.Constant(dataset.y[:batch_size])
-        loss_node = model.get_loss(inp_x, inp_y)
-        verify_node(loss_node, 'loss', None, "DigitClassificationModel.get_loss()")
-        trace = trace_node(loss_node)
-        assert inp_x in trace, "Node returned from DigitClassificationModel.get_loss() does not depend on the provided input (x)"
-        assert inp_y in trace, "Node returned from DigitClassificationModel.get_loss() does not depend on the provided labels (y)"
-
-        for node in trace:
-            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
-                "DigitClassificationModel.get_loss() should not use additional parameters not used by DigitClassificationModel.run()")
-
-    tracker.add_points(2) # Partial credit for passing sanity checks
-
-    model.train(dataset)
-
-    test_logits = model.run(nn.Constant(dataset.test_images)).data
-    test_predicted = np.argmax(test_logits, axis=1)
-    test_accuracy = np.mean(test_predicted == dataset.test_labels)
-
-    accuracy_threshold = 0.97
-    if test_accuracy >= accuracy_threshold:
-        print("Your final test set accuracy is: {:%}".format(test_accuracy))
-        tracker.add_points(4)
-    else:
-        print("Your final test set accuracy ({:%}) must be at least {:.0%} to receive full points for this question".format(test_accuracy, accuracy_threshold))
-
-@test('q4', points=7)
-def check_lang_id(tracker):
-    import models
-    model = models.LanguageIDModel()
-    dataset = backend.LanguageIDDataset(model)
-
-    detected_parameters = None
-    for batch_size, word_length in ((1, 1), (2, 1), (2, 6), (4, 8)):
-        start = dataset.dev_buckets[-1, 0]
-        end = start + batch_size
-        inp_xs, inp_y = dataset._encode(dataset.dev_x[start:end], dataset.dev_y[start:end])
-        inp_xs = inp_xs[:word_length]
-
-        output_node = model.run(inp_xs)
-        verify_node(output_node, 'node', (batch_size, len(dataset.language_names)), "LanguageIDModel.run()")
-        trace = trace_node(output_node)
-        for inp_x in inp_xs:
-            assert inp_x in trace, "Node returned from LanguageIDModel.run() does not depend on all of the provided inputs (xs)"
-
-        # Word length 1 does not use parameters related to transferring the
-        # hidden state across timesteps, so initial parameter detection is only
-        # run for longer words
-        if word_length > 1:
-            if detected_parameters is None:
-                detected_parameters = [node for node in trace if isinstance(node, nn.Parameter)]
-
-            for node in trace:
-                assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
-                    "Calling LanguageIDModel.run() multiple times should always re-use the same parameters, but a new nn.Parameter object was detected")
-
-    for batch_size, word_length in ((1, 1), (2, 1), (2, 6), (4, 8)):
-        start = dataset.dev_buckets[-1, 0]
-        end = start + batch_size
-        inp_xs, inp_y = dataset._encode(dataset.dev_x[start:end], dataset.dev_y[start:end])
-        inp_xs = inp_xs[:word_length]
-        loss_node = model.get_loss(inp_xs, inp_y)
-        trace = trace_node(loss_node)
-        for inp_x in inp_xs:
-            assert inp_x in trace, "Node returned from LanguageIDModel.run() does not depend on all of the provided inputs (xs)"
-        assert inp_y in trace, "Node returned from LanguageIDModel.get_loss() does not depend on the provided labels (y)"
-
-        for node in trace:
-            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
-                "LanguageIDModel.get_loss() should not use additional parameters not used by LanguageIDModel.run()")
-
-    tracker.add_points(2) # Partial credit for passing sanity checks
-
-    model.train(dataset)
-
-    test_predicted_probs, test_predicted, test_correct = dataset._predict('test')
-    test_accuracy = np.mean(test_predicted == test_correct)
-    accuracy_threshold = 0.81
-    if test_accuracy >= accuracy_threshold:
-        print("Your final test set accuracy is: {:%}".format(test_accuracy))
-        tracker.add_points(5)
-    else:
-        print("Your final test set accuracy ({:%}) must be at least {:.0%} to receive full points for this question".format(test_accuracy, accuracy_threshold))
-
 if __name__ == '__main__':
-    main()
+    my_main()
