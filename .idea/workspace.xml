@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ed17d5a0-835a-4cbc-928f-c03008258b8a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic/logicPlan.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic/logicPlan.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/search/search.py" beforeDir="false" afterPath="$PROJECT_DIR$/search/search.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,6 +58,7 @@
       <workItem from="1699489139839" duration="837000" />
       <workItem from="1699544451803" duration="304000" />
       <workItem from="1699806148216" duration="3358000" />
+      <workItem from="1699976004748" duration="665000" />
     </task>
     <servers />
   </component>
@@ -69,8 +69,8 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/AI_Midterm$autograder.coverage" NAME="autograder Coverage Results" MODIFIED="1699544652221" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/logic" />
     <SUITE FILE_PATH="coverage/AI_Midterm$Doctests_in_logicPlan.coverage" NAME="Doctests in logicPlan Coverage Results" MODIFIED="1699807087107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/logic" />
     <SUITE FILE_PATH="coverage/AI_Midterm$.coverage" NAME=" Coverage Results" MODIFIED="1699459417906" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/machinelearning" />
+    <SUITE FILE_PATH="coverage/AI_Midterm$autograder.coverage" NAME="autograder Coverage Results" MODIFIED="1699976644210" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/search" />
   </component>
 </project>

@@ -88,22 +88,21 @@ def depthFirstSearch(problem):
     """
     "*** YOUR CODE HERE ***"
     
-    stack = util.Stack()
+    stk = util.Stack()
 
     if (problem.isGoalState(problem.getStartState())):
         return []
     else:
-        stack.push((problem.getStartState(), []))
-
+        stk.push((problem.getStartState(), []))
     visited = []
-    while stack.isEmpty() != True:
-        next, trace = stack.pop()
+    while stk.isEmpty() != True:
+        next, trace = stk.pop()
         if next not in visited:
             visited.append(next)
             if problem.isGoalState(next):
                 return trace
             for successor in problem.getSuccessors(next):
-                stack.push((successor[0], trace + [successor[1]]))
+                stk.push((successor[0], trace + [successor[1]]))
     return []
 
 def breadthFirstSearch(problem):
@@ -131,14 +130,11 @@ def breadthFirstSearch(problem):
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    
     priorityQueue = util.PriorityQueue()
-
     if (problem.isGoalState(problem.getStartState())):
         return []
     else:
         priorityQueue.push((problem.getStartState(), []), 0)
-
     visited = []
     while not priorityQueue.isEmpty():
         next, trace = priorityQueue.pop()
@@ -151,7 +147,6 @@ def uniformCostSearch(problem):
                     trace + [successor[1]]) + nullHeuristic(successor[0], problem)
                 priorityQueue.push( 
                     (successor[0], trace + [successor[1]]), cost)
-
     return []
 
 def nullHeuristic(state, problem=None):
@@ -164,17 +159,14 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    
     priorityQueue = util.PriorityQueue()
-
     if (problem.isGoalState(problem.getStartState())):
         return []
     else:
-        priorityQueue.push((problem.getStartState(), []), 0)
-
+        priorityQueue.push((problem.getStartState(), []),0)
     visited = []
     while not priorityQueue.isEmpty():
-        next, trace = priorityQueue.pop()
+        next,trace = priorityQueue.pop()
         if next not in visited:
             visited.append(next)
             if problem.isGoalState(next):
