@@ -468,5 +468,55 @@ def my_check_regression(tracker):
     else:
         print("Your final loss ({:f}) must be no more than {:.4f} to receive full points for this question".format(train_loss, loss_threshold))
 
+@my_test('q3', points=6)
+def my_check_digit_classification(tracker):
+    import models
+    model = models.DigitClassificationModel()
+    dataset = backend.DigitClassificationDataset(model)
+
+    detected_parameters = None
+    for batch_size in (1, 2, 4):
+        inp_x = nn.Constant(dataset.x[:batch_size])
+        inp_y = nn.Constant(dataset.y[:batch_size])
+        output_node = model.run(inp_x)
+        verify_node(output_node, 'node', (batch_size, 10), "DigitClassificationModel.run()")
+        trace = trace_node(output_node)
+        assert inp_x in trace, "Node returned from DigitClassificationModel.run() does not depend on the provided input (x)"
+
+        if detected_parameters is None:
+            detected_parameters = [node for node in trace if isinstance(node, nn.Parameter)]
+
+        for node in trace:
+            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
+                "Calling DigitClassificationModel.run() multiple times should always re-use the same parameters, but a new nn.Parameter object was detected")
+
+    for batch_size in (1, 2, 4):
+        inp_x = nn.Constant(dataset.x[:batch_size])
+        inp_y = nn.Constant(dataset.y[:batch_size])
+        loss_node = model.get_loss(inp_x, inp_y)
+        verify_node(loss_node, 'loss', None, "DigitClassificationModel.get_loss()")
+        trace = trace_node(loss_node)
+        assert inp_x in trace, "Node returned from DigitClassificationModel.get_loss() does not depend on the provided input (x)"
+        assert inp_y in trace, "Node returned from DigitClassificationModel.get_loss() does not depend on the provided labels (y)"
+
+        for node in trace:
+            assert not isinstance(node, nn.Parameter) or node in detected_parameters, (
+                "DigitClassificationModel.get_loss() should not use additional parameters not used by DigitClassificationModel.run()")
+
+    tracker.add_points(2) # Partial credit for passing sanity checks
+
+    model.train(dataset)
+
+    test_logits = model.run(nn.Constant(dataset.test_images)).data
+    test_predicted = np.argmax(test_logits, axis=1)
+    test_accuracy = np.mean(test_predicted == dataset.test_labels)
+
+    accuracy_threshold = 0.97
+    if test_accuracy >= accuracy_threshold:
+        print("Your final test set accuracy is: {:%}".format(test_accuracy))
+        tracker.add_points(4)
+    else:
+        print("Your final test set accuracy ({:%}) must be at least {:.0%} to receive full points for this question".format(test_accuracy, accuracy_threshold))
+
 if __name__ == '__main__':
     my_main()

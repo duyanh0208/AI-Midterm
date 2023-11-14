@@ -122,3 +122,81 @@ class RegressionModel(object):
                 self.b1.update(gb1, -self.learnRate)
                 self.b2.update(gb2, -self.learnRate)
                 loss = nn.as_scalar(loss)
+
+class DigitClassificationModel(object):
+    """
+    A model for handwritten digit classification using the MNIST dataset.
+
+    Each handwritten digit is a 28x28 pixel grayscale image, which is flattened
+    into a 784-dimensional vector for the purposes of this model. Each entry in
+    the vector is a floating point number between 0 and 1.
+
+    The goal is to sort each digit into one of 10 classes (number 0 through 9).
+
+    (See RegressionModel for more information about the APIs of different
+    methods here. We recommend that you implement the RegressionModel before
+    working on this part of the project.)
+    """
+
+    def __init__(self):
+        # Initialize your model parameters here
+        "*** YOUR CODE HERE ***"
+        self.w1 = nn.Parameter(784, 200)  # first argument should be dim (x)
+        self.b1 = nn.Parameter(1, 200)
+        self.w2 = nn.Parameter(200, 10)
+        self.b2 = nn.Parameter(1, 10)
+        self.learnRate = 0.5
+
+    def run(self, x):
+        """
+        Runs the model for a batch of examples.
+
+        Your model should predict a node with shape (batch_size x 10),
+        containing scores. Higher scores correspond to greater probability of
+        the image belonging to a particular class.
+
+        Inputs:
+            x: a node with shape (batch_size x 784)
+        Output:
+            A node with shape (batch_size x 10) containing predicted scores
+                (also called logits)
+        """
+        h1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        predicted_y = nn.AddBias(nn.Linear(h1, self.w2), self.b2)
+        return predicted_y
+        "*** YOUR CODE HERE ***"
+
+    def get_loss(self, x, y):
+        """
+        Computes the loss for a batch of examples.
+
+        The correct labels `y` are represented as a node with shape
+        (batch_size x 10). Each row is a one-hot vector encoding the correct
+        digit class (0-9).
+
+        Inputs:
+            x: a node with shape (batch_size x 784)
+            y: a node with shape (batch_size x 10)
+        Returns: a loss node
+        """
+        predicted_y = self.run(x)
+        loss = nn.SoftmaxLoss(predicted_y, y)
+        return loss
+        "*** YOUR CODE HERE ***"
+
+    def train(self, dataset):
+        """
+        Trains the model.
+        """
+        batch_size = 100
+        validation = 0
+        while validation < 0.975:
+            for x, y in dataset.iterate_once(batch_size):
+                loss = self.get_loss(x, y)
+                gw1, gw2, gb1, gb2 = nn.gradients(loss, [self.w1, self.w2, self.b1, self.b2])
+                self.w1.update(gw1, -self.learnRate)
+                self.w2.update(gw2, -self.learnRate)
+                self.b1.update(gb1, -self.learnRate)
+                self.b2.update(gb2, -self.learnRate)
+            validation = dataset.get_validation_accuracy()
+        "*** YOUR CODE HERE ***"
