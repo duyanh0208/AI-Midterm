@@ -22,16 +22,19 @@ import re
 import sys
 import projectParams
 import random
+
 random.seed(0)
 try:
     from pacman import GameState
 except:
     pass
 
+
 # register arguments and set default values
 def readCommand(argv):
     parser = optparse.OptionParser(description='Run public tests on student code')
-    parser.set_defaults(generateSolutions=False, edxOutput=False, gsOutput=False, muteOutput=False, printTestCase=False, noGraphics=False)
+    parser.set_defaults(generateSolutions=False, edxOutput=False, gsOutput=False, muteOutput=False, printTestCase=False,
+                        noGraphics=False)
     # BEGIN SOLUTION NO PROMPT
     parser.set_defaults(generatePublicTests=False)
     # END SOLUTION NO PROMPT
@@ -85,9 +88,9 @@ def readCommand(argv):
                       help='No graphics display for pacman games.')
     # BEGIN SOLUTION NO PROMPT
     parser.add_option('--generate-public-tests',
-                    dest='generatePublicTests',
-                    action='store_true',
-                    help='Generate ./test_cases/* from ./private_test_cases/*')
+                      dest='generatePublicTests',
+                      action='store_true',
+                      help='Generate ./test_cases/* from ./private_test_cases/*')
     # END SOLUTION NO PROMPT
     (options, args) = parser.parse_args(argv)
     return options
@@ -125,10 +128,10 @@ def setModuleName(module, filename):
         elif type(o) == classType:
             setattr(o, '__file__', filename)
             # TODO: assign member __file__'s?
-        #print(i, type(o))
+        # print(i, type(o))
 
 
-#from cStringIO import StringIO
+# from cStringIO import StringIO
 
 # def loadModuleString(moduleSource):
 #     # Below broken, imp doesn't believe its being passed a file:
@@ -142,6 +145,7 @@ def setModuleName(module, filename):
 #     return tmp
 
 import py_compile
+
 
 def loadModuleFile(moduleName, filePath):
     # imp has been deprecated
@@ -191,6 +195,7 @@ ERROR_HINT_MAP = {
 }
 
 import pprint
+
 
 def splitStrings(d):
     d2 = dict(d)
@@ -247,6 +252,7 @@ def getDepends(testParser, testRoot, question):
             # run dependencies first
             allDeps = getDepends(testParser, testRoot, d) + allDeps
     return allDeps
+
 
 # get list of questions to grade
 def getTestSubdirs(testParser, testRoot, questionToGrade):
@@ -312,14 +318,17 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
                     testDict = testParser.TestParser(test_file).parse()
                     solutionDict = testParser.TestParser(solution_file).parse()
                     if printTestCase:
-                        return lambda grades: printTest(testDict, solutionDict) or testCase.execute(grades, moduleDict, solutionDict)
+                        return lambda grades: printTest(testDict, solutionDict) or testCase.execute(grades, moduleDict,
+                                                                                                    solutionDict)
                     else:
                         return lambda grades: testCase.execute(grades, moduleDict, solutionDict)
+
             question.addTestCase(testCase, makefun(testCase, solution_file))
 
         # Note extra function is necessary for scoping reasons
         def makefun(question):
             return lambda grades: question.execute(grades)
+
         setattr(sys.modules[__name__], q, makefun(question))
         questions.append((q, question.getMaxPoints()))
 
@@ -347,8 +356,10 @@ def getDisplay(graphicsByDefault, options=None):
     import textDisplay
     return textDisplay.NullGraphics()
 
+
 # BEGIN SOLUTION NO PROMPT
 import shutil
+
 
 def copy(srcDir, destDir, filename):
     srcFilename = os.path.join(srcDir, filename)
@@ -358,6 +369,7 @@ def copy(srcDir, destDir, filename):
     # with open(os.path.join(srcDir, filename), 'r') as f1:
     #     with open(os.path.join(destDir, filename), 'w') as f2:
     #         f2.write(f1.read())
+
 
 def generatePublicTests(moduleDict, privateRoot='private_test_cases', publicRoot='test_cases'):
     import testParser
@@ -399,8 +411,9 @@ def generatePublicTests(moduleDict, privateRoot='private_test_cases', publicRoot
 
             testCase.createPublicVersion()
             testCase.emitPublicVersion(public_test_file)
-# END SOLUTION NO PROMPT
 
+
+# END SOLUTION NO PROMPT
 
 
 if __name__ == '__main__':
@@ -419,10 +432,10 @@ if __name__ == '__main__':
     for cp in codePaths:
         moduleName = re.match('.*?([^/]*)\.py', cp).group(1)
         moduleDict[moduleName] = loadModuleFile(moduleName, os.path.join(options.codeRoot, cp))
-        
+
     moduleName = re.match('.*?([^/]*)\.py', options.testCaseCode).group(1)
     moduleDict['projectTestClasses'] = loadModuleFile(moduleName, os.path.join(options.codeRoot, options.testCaseCode))
-    
+
     # BEGIN SOLUTION NO PROMPT
     if options.generatePublicTests:
         generatePublicTests(moduleDict)
