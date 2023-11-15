@@ -474,26 +474,27 @@ def foodLogicPlan(problem) -> List:
 
     KB = []
 
+    "*** BEGIN YOUR CODE HERE ***"
     # Initializing initial state and food positions
     KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0))
     for x, y in food:
         KB.append(PropSymbolExpr(food_str, x, y, time=0))
 
     for t in range(0, 50):
-        possibleCoords = [PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords]
-        KB.append(exactlyOne(possibleCoords))
+        possible_coords = [PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords]
+        KB.append(exactlyOne(possible_coords))
 
-        allFood = [PropSymbolExpr(food_str, x, y, time=t) for x, y in non_wall_coords]
+        all_food = [PropSymbolExpr(food_str, x, y, time=t) for x, y in non_wall_coords]
 
-        model = findModel(conjoin(KB + [~disjoin(allFood)]))
+        model = findModel(conjoin(KB + [~disjoin(all_food)]))
         if model:
             return extractActionSequence(model, actions)
 
-        actionlist = [PropSymbolExpr(action, time=t) for action in actions]
-        KB.append(exactlyOne(actionlist))
+        action_list = [PropSymbolExpr(action, time=t) for action in actions]
+        KB.append(exactlyOne(action_list))
 
-        transitionModelSentences = [pacmanSuccessorAxiomSingle(x, y, t + 1, walls) for x, y in non_wall_coords]
-        KB += transitionModelSentences
+        transition_model_sentences = [pacmanSuccessorAxiomSingle(x, y, t + 1, walls) for x, y in non_wall_coords]
+        KB += transition_model_sentences
 
         for x, y in non_wall_coords:
             P1 = PropSymbolExpr(food_str, x, y, time=t)
@@ -522,16 +523,29 @@ def localization(problem, agent) -> Generator:
 
     for t in range(agent.num_timesteps):
         KB.append(
-            pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid, sensorAxioms, allLegalSuccessorAxioms))
+            pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid, 
+                             sensorModel=sensorAxioms, successorAxioms=allLegalSuccessorAxioms))
         KB.append(PropSymbolExpr(agent.actions[t], time=t))
         KB.append(fourBitPerceptRules(t, agent.getPercepts()))
 
         possible_locations = []
         for x, y in non_outer_wall_coords:
-            possible_model = findModel(conjoin(KB) & PropSymbolExpr(pacman_str, x, y, time=t))
-
-            if possible_model:
+            pacman_location = PropSymbolExpr(pacman_str, x, y, time=t)
+            knowledge = conjoin(KB)
+            if findModel(knowledge & pacman_location):
                 possible_locations.append((x, y))
+
+            location_at_time_t = entails(knowledge, pacman_location)
+            location_not_at_time_t = entails(knowledge, ~pacman_location)
+            
+            if (location_at_time_t and location_not_at_time_t):
+                print("Error: Possible location at time t and possible location not at time t are entailed simultaneously.")
+                exit(-1)
+
+            if location_at_time_t:
+                KB.append(pacman_location)
+            elif location_not_at_time_t:
+                KB.append(~pacman_location)
 
         agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
@@ -574,12 +588,22 @@ def mapping(problem, agent) -> Generator:
         KB.append(fourBitPerceptRules(t, agent.getPercepts()))
 
         for x, y in non_outer_wall_coords:
-            if entails(conjoin(KB), ~PropSymbolExpr(wall_str, x, y)):
-                KB.append(~PropSymbolExpr(wall_str, x, y))
-                known_map[x][y] = 0
-            if entails(conjoin(KB), PropSymbolExpr(wall_str, x, y)):
-                KB.append(PropSymbolExpr(wall_str, x, y))
-                known_map[x][y] = 1
+            wall_location = PropSymbolExpr(wall_str, x, y)
+            knowledge = conjoin(KB)
+            if known_map[x][y] == -1:
+                location_be_wall = entails(knowledge, wall_location)
+                location_not_be_wall = entails(knowledge, ~wall_location)
+                
+                if (location_be_wall and location_not_be_wall):
+                    print("Error: Possible location at time t and possible location not at time t are entailed simultaneously.")
+                    exit(-1)
+
+                if location_be_wall:
+                    known_map[x][y] = 1
+                    KB.append(wall_location)
+                elif location_not_be_wall:
+                    known_map[x][y] = 0
+                    KB.append(~wall_location)
 
         agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
@@ -622,18 +646,42 @@ def slam(problem, agent) -> Generator:
         KB.append(numAdjWallsPerceptRules(t, agent.getPercepts()))
 
         for x, y in non_outer_wall_coords:
-            if entails(conjoin(KB), ~PropSymbolExpr(wall_str, x, y)):
-                KB.append(~PropSymbolExpr(wall_str, x, y))
-                known_map[x][y] = 0
-            if entails(conjoin(KB), PropSymbolExpr(wall_str, x, y)):
-                KB.append(PropSymbolExpr(wall_str, x, y))
-                known_map[x][y] = 1
+            knowledge = conjoin(KB)
+            wall_location = PropSymbolExpr(wall_str, x, y)
+            
+            if known_map[x][y] == -1:
+                location_be_wall = entails(knowledge, wall_location)
+                location_not_be_wall = entails(knowledge, ~wall_location)
+
+                if (location_be_wall and location_not_be_wall):
+                    print("Error: Possible location at time t and possible location not at time t are entailed simultaneously.")
+                    exit(-1)
+
+                if location_be_wall:
+                    known_map[x][y] = 1
+                    KB.append(wall_location)
+                elif location_not_be_wall:
+                    known_map[x][y] = 0
+                    KB.append(~wall_location)
 
         possible_locations = []
         for x, y in non_outer_wall_coords:
-            possible_model = findModel(conjoin(KB) & PropSymbolExpr(pacman_str, x, y, time=t))
-            if possible_model:
+            pacman_location = PropSymbolExpr(pacman_str, x, y, time=t)
+            knowledge = conjoin(KB)
+            if findModel(knowledge & pacman_location):
                 possible_locations.append((x, y))
+
+            location_at_time_t = entails(knowledge, pacman_location)
+            location_not_at_time_t = entails(knowledge, ~pacman_location)
+            
+            if (location_at_time_t and location_not_at_time_t):
+                print("Error: Possible location at time t and possible location not at time t are entailed simultaneously.")
+                exit(-1)
+
+            if location_at_time_t:
+                KB.append(pacman_location)
+            elif location_not_at_time_t:
+                KB.append(~pacman_location)
 
         agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
