@@ -453,7 +453,6 @@ def positionLogicPlan(problem) -> List:
 
 #______________________________________________________________________________
 # QUESTION 5
-
 def foodLogicPlan(problem) -> List:
     """
     Given an instance of a FoodPlanningProblem, return a list of actions that help Pacman
@@ -468,63 +467,40 @@ def foodLogicPlan(problem) -> List:
     (x0, y0), food = problem.start
     food = food.asList()
 
-    # Get lists of possible locations (i.e. without walls) and possible actions
-    all_coords = list(itertools.product(range(width + 2), range(height + 2)))
-
-    non_wall_coords = [loc for loc in all_coords if loc not in walls_list]
-    actions = [ 'North', 'South', 'East', 'West' ]
+    # Get lists of possible locations (i.e., without walls) and possible actions
+    all_coords = set(itertools.product(range(width + 2), range(height + 2)))
+    non_wall_coords = all_coords - set(walls_list)
+    actions = ['North', 'South', 'East', 'West']
 
     KB = []
 
-    "*** BEGIN YOUR CODE HERE ***"
+    # Initializing initial state and food positions
     KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0))
-
-    # Initialize Food[x,y]_t variables with the code
-    # PropSymbolExpr(food_str, x, y, time=t), where each variable is
-    # true if and only if there is a food at (x, y) at time t.
     for x, y in food:
         KB.append(PropSymbolExpr(food_str, x, y, time=0))
 
     for t in range(0, 50):
-        print("t = ", t)
-
-        possibleCoords = []
-        for x, y in non_wall_coords:
-            possibleCoords.append(PropSymbolExpr(pacman_str, x, y, time=t))
+        possibleCoords = [PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords]
         KB.append(exactlyOne(possibleCoords))
 
-        allFood = []
-        for x, y in non_wall_coords:
-            allFood.append(PropSymbolExpr(food_str, x, y, time=t))
+        allFood = [PropSymbolExpr(food_str, x, y, time=t) for x, y in non_wall_coords]
 
-        # goal assertion sentence must be true if and only if all of
-        # the food have been eaten. This happens when all Food[x,y]_t
-        # are false.
-        model = findModel(
-            conjoin(conjoin(KB), ~disjoin(allFood)),
-        )
+        model = findModel(conjoin(KB + [~disjoin(allFood)]))
         if model:
             return extractActionSequence(model, actions)
 
-        actionlist = []
-        for action in actions:
-            actionlist.append(PropSymbolExpr(action, time=t))
+        actionlist = [PropSymbolExpr(action, time=t) for action in actions]
         KB.append(exactlyOne(actionlist))
 
-        transitionModelSentences = []
-        for x, y in non_wall_coords:
-            transitionModelSentences.append(
-                pacmanSuccessorAxiomSingle(x, y, t + 1, walls)
-            )
+        transitionModelSentences = [pacmanSuccessorAxiomSingle(x, y, t + 1, walls) for x, y in non_wall_coords]
         KB += transitionModelSentences
 
-        # food successor axiom
         for x, y in non_wall_coords:
             P1 = PropSymbolExpr(food_str, x, y, time=t)
             P2 = ~PropSymbolExpr(pacman_str, x, y, time=t)
             C = PropSymbolExpr(food_str, x, y, time=t + 1)
             KB.append(C % conjoin(P1, P2))
-    "*** END YOUR CODE HERE ***"
+    return []  # Return empty list if no solution found within 50 steps
 
 #______________________________________________________________________________
 # QUESTION 6
